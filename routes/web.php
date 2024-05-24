@@ -18,6 +18,8 @@ Route::view('profile', 'profile')
 Route::post('/upload-image', [ImageController::class, 'upload'])->name('upload_image');
 
 Route::post('/generate-headshot', [ImageController::class, 'generateHeadshot'])->name('generate_headshot');
+
+Route::post('/face-swap', [ImageController::class, 'faceSwap'])->name('face_swap');
     
 
 require __DIR__.'/auth.php';

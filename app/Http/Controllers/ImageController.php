@@ -36,7 +36,7 @@ class ImageController extends Controller
         return response()->json(['success' => true, 'image_url' => $cloudinaryUpload->getSecurePath()]);
     }
 
-    public function generateHeadshot1(Request $request)
+    public function OpenAIgenerateHeadshot(Request $request)
     {
         // Validate the request data
         $request->validate([
@@ -151,14 +151,42 @@ class ImageController extends Controller
             'Accept: image/*'
         ];
 
-        $imageUrl1 = generateAndUploadImage($prompt1, $headers);
-        $imageUrl2 = generateAndUploadImage($prompt2, $headers);
+        // $imageUrl1 = generateAndUploadImage($prompt1, $headers);
+        // $imageUrl2 = generateAndUploadImage($prompt2, $headers);
+
+        $imageUrl1 = 'https://res.cloudinary.com/duwy7nk8w/image/upload/v1716583648/generated/1/1_6650fcdd40a3c.jpg';
+        $imageUrl2 = 'https://res.cloudinary.com/duwy7nk8w/image/upload/v1716583629/generated/1/1_6650fcca1a2f8.jpg';
 
         if ($imageUrl1 && $imageUrl2) {
             return back()->with('success', 'Images generated successfully.')->with('image_url1', $imageUrl1)->with('image_url2', $imageUrl2);
         } else {
             return back()->with('error', 'Failed to generate images.');
         }
+    }
+
+    public function faceSwap(Request $request)
+    {
+        $replicateApiToken = env('REPLICATE_API_TOKEN');
+
+        $swapImageUrl = $request->swap_image_url;
+        $targetImageUrl = $request->target_image_url; 
+
+        // Make a POST request to the Replicate API
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $replicateApiToken,
+            'Content-Type' => 'application/json',
+        ])->post('https://api.replicate.com/v1/predictions', [
+            'version' => 'c2d783366e8d32e6e82c40682fab6b4c23b9c6eff2692c0cf7585fc16c238cfe',
+            'input' => [
+                'swap_image' => $swapImageUrl,
+                'target_image' => $targetImageUrl,
+            ],
+        ]);
+
+        // Extract the swapped image URL from the response
+        $swappedImageUrl = $response->json('output.swapped_image');
+
+        return response()->json(['swapped_image_url' => $swappedImageUrl]);
     }
 
 }

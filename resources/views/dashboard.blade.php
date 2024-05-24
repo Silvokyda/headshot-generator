@@ -33,52 +33,6 @@
                         </div>
                     </form>
 
-                    <script>
-                        document.getElementById('image').addEventListener('change', function() {
-                            // Show the loader
-                            document.getElementById('loader').classList.remove('hidden');
-
-                            // Get the form element
-                            var form = document.getElementById('imageUploadForm');
-                            var formData = new FormData(form);
-
-                            // Make an AJAX request to upload the image
-                            fetch('{{ route("upload_image") }}', {
-                                    method: 'POST',
-                                    headers: {
-                                        'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
-                                    },
-                                    body: formData
-                                })
-                                .then(response => response.json())
-                                .then(data => {
-                                    // Hide the loader
-                                    document.getElementById('loader').classList.add('hidden');
-
-                                    if (data.success) {
-                                        // Remove the SVG icon
-                                        document.getElementById('uploadIcon').remove();
-
-                                        // Create an img element and set the src to the uploaded image URL
-                                        var img = document.createElement('img');
-                                        img.src = data.image_url;
-                                        img.className = 'w-32 h-32 rounded-full object-cover';
-
-                                        // Append the img element to the container
-                                        document.getElementById('imageContainer').appendChild(img);
-                                    } else {
-                                        alert('Image upload failed');
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error('Error:', error);
-                                    alert('An error occurred while uploading the image');
-                                    // Hide the loader in case of error
-                                    document.getElementById('loader').classList.add('hidden');
-                                });
-                        });
-                    </script>
-
                     <form action="{{ route('generate_headshot') }}" method="POST">
                         @csrf
                         <div class="mb-4">
@@ -126,22 +80,22 @@
                         <div class="row">
                             <div class="col-md-6">
                                 @if (session('success'))
-                                    <div class="alert alert-success">
-                                        {{ session('success') }}
-                                    </div>
-                                    <div>
-                                        <img src="{{ session('image_url1') }}" alt="Generated Headshot 1" class="rounded-full img-fluid">
-                                    </div>
+                                <div class="alert alert-success">
+                                    {{ session('success') }}
+                                </div>
+                                <div>
+                                    <img src="{{ session('image_url1') }}" alt="Generated Headshot 1" class="rounded-full img-fluid" onclick="handleImageClick('{{ session('image_url1') }}')">
+                                </div>
                                 @endif
                             </div>
                             <div class="col-md-6">
                                 @if (session('success'))
-                                    <div class="alert alert-success">
-                                        {{ session('success') }}
-                                    </div>
-                                    <div>
-                                        <img src="{{ session('image_url2') }}" alt="Generated Headshot 2" class="rounded-full img-fluid">
-                                    </div>
+                                <div class="alert alert-success">
+                                    {{ session('success') }}
+                                </div>
+                                <div>
+                                    <img src="{{ session('image_url2') }}" alt="Generated Headshot 2" class="rounded-full img-fluid" onclick="handleImageClick('{{ session('image_url2') }}')">>
+                                </div>
                                 @endif
                             </div>
                         </div>
@@ -152,6 +106,92 @@
                         </div>
                         @endif
                     </form>
+
+                    <div id="swappedImageContainer"></div>
+
+
+
+                    <script>
+                        document.getElementById('image').addEventListener('change', function() {
+                            // Show the loader
+                            document.getElementById('loader').classList.remove('hidden');
+
+                            // Get the form element
+                            var form = document.getElementById('imageUploadForm');
+                            var formData = new FormData(form);
+
+                            // Make an AJAX request to upload the image
+                            fetch('{{ route("upload_image") }}', {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
+                                    },
+                                    body: formData
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    // Hide the loader
+                                    document.getElementById('loader').classList.add('hidden');
+
+                                    if (data.success) {
+                                        // Remove the SVG icon
+                                        document.getElementById('uploadIcon').remove();
+
+                                        // Create an img element and set the src to the uploaded image URL
+                                        var img = document.createElement('img');
+                                        img.src = data.image_url;
+                                        img.className = 'w-32 h-32 rounded-full object-cover';
+
+                                        // Append the img element to the container
+                                        document.getElementById('imageContainer').appendChild(img);
+                                    } else {
+                                        alert('Image upload failed');
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error:', error);
+                                    alert('An error occurred while uploading the image');
+                                    // Hide the loader in case of error
+                                    document.getElementById('loader').classList.add('hidden');
+                                });
+                        });
+                    </script>
+
+                    <script>
+                        // Function to handle the click event on the images
+                        function handleImageClick(imageUrl) {
+                            var SwapImageUrl = document.getElementById('imageContainer').querySelector('img').src;
+
+                            fetch('{{ route("face_swap") }}', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                    },
+                                    body: JSON.stringify({
+                                        swap_image_url: SwapImageUrl,
+                                        target_image_url: imageUrl
+                                    })
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.swapped_image_url) {
+                                        var swappedImg = document.createElement('img');
+                                        swappedImg.src = data.swapped_image_url;
+                                        swappedImg.className = 'rounded-full img-fluid';
+
+                                        document.getElementById('swappedImageContainer').appendChild(swappedImg);
+                                    } else {
+                                        alert('Face swap failed.');
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error:', error);
+                                    alert('An error occurred while performing face swap.');
+                                });
+                        }
+                    </script>
+
                 </div>
             </div>
         </div>
