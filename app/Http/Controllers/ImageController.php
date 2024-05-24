@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Session;
 use App\Models\Image;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Illuminate\Support\Facades\Http;
@@ -11,14 +12,20 @@ use Illuminate\Support\Facades\Log;
 
 class ImageController extends Controller
 {
+
     public function upload(Request $request)
     {
-
         $request->validate([
             'image' => 'required|image|max:2048',
         ]);
 
         $userId = auth()->id();
+
+        if (Session::has('upload_ref')) {
+            $uploadRef = Session::get('upload_ref');
+            $imageUrl = Cloudinary::getImage($uploadRef)->getSecurePath();
+            return response()->json(['success' => true, 'image_url' => $imageUrl]);
+        }
 
         $image = $request->file('image');
         $cloudinaryUpload = Cloudinary::upload($image->getRealPath(), [
@@ -26,15 +33,17 @@ class ImageController extends Controller
             'public_id' => $userId . '_' . uniqid(),
         ]);
 
-        // Create a new image record in the database
-        $image = new Image();
-        $image->user_id = $userId;
-        $image->upload_ref = $cloudinaryUpload->getPublicId();
-        $image->image_name = $cloudinaryUpload->getSecurePath();
-        $image->save();
+        $imageModel = new Image();
+        $imageModel->user_id = $userId;
+        $imageModel->upload_ref = $cloudinaryUpload->getPublicId();
+        $imageModel->image_name = $cloudinaryUpload->getSecurePath();
+        $imageModel->save();
+
+        Session::put('image_name', $cloudinaryUpload->getSecurePath());
 
         return response()->json(['success' => true, 'image_url' => $cloudinaryUpload->getSecurePath()]);
     }
+
 
     public function OpenAIgenerateHeadshot(Request $request)
     {
@@ -47,8 +56,6 @@ class ImageController extends Controller
             'hair_length' => 'required|string|max:255',
             'image' => 'required|image|max:2048',
         ]);
-
-        Log::info("request" . $request->all());
 
         // Collect data from the form
         $data = $request->only(['gender', 'age', 'ethnicity', 'hair_color', 'hair_length']);
@@ -66,8 +73,6 @@ class ImageController extends Controller
             'n' => 1,
             'size' => '1024x1024',
         ]);
-
-        Log::info("response" . $response->json());
 
         // Check if the request was successful
         if ($response->successful()) {
@@ -106,7 +111,8 @@ class ImageController extends Controller
         $prompt2 = "a professional headshot of a {$data['age']} year old {$data['gender']} with {$data['hair_length']} {$data['hair_color']} hair and {$data['ethnicity']} ethnicity, dressed in formal attire, in a studio environment with a softly blurred background, photographed by a professional";
 
         // Function to generate and upload an image
-        function generateAndUploadImage($prompt, $headers) {
+        function generateAndUploadImage($prompt, $headers)
+        {
             $url = "https://api.stability.ai/v2beta/stable-image/generate/core";
             $postData = [
                 'prompt' => $prompt,
@@ -127,8 +133,6 @@ class ImageController extends Controller
             if ($httpCode == 200) {
                 $tempImagePath = tempnam(sys_get_temp_dir(), 'headshot_') . '.jpeg';
                 file_put_contents($tempImagePath, $response);
-
-                Log::info("API response: " . $response);
 
                 $userId = auth()->user()->id;
                 $cloudinaryUpload = Cloudinary::upload($tempImagePath, [
@@ -151,11 +155,11 @@ class ImageController extends Controller
             'Accept: image/*'
         ];
 
-        // $imageUrl1 = generateAndUploadImage($prompt1, $headers);
-        // $imageUrl2 = generateAndUploadImage($prompt2, $headers);
+        $imageUrl1 = generateAndUploadImage($prompt1, $headers);
+        $imageUrl2 = generateAndUploadImage($prompt2, $headers);
 
-        $imageUrl1 = 'https://res.cloudinary.com/duwy7nk8w/image/upload/v1716583648/generated/1/1_6650fcdd40a3c.jpg';
-        $imageUrl2 = 'https://res.cloudinary.com/duwy7nk8w/image/upload/v1716583629/generated/1/1_6650fcca1a2f8.jpg';
+        // $imageUrl1 = 'https://res.cloudinary.com/duwy7nk8w/image/upload/v1716583648/generated/1/1_6650fcdd40a3c.jpg';
+        // $imageUrl2 = 'https://res.cloudinary.com/duwy7nk8w/image/upload/v1716583629/generated/1/1_6650fcca1a2f8.jpg';
 
         if ($imageUrl1 && $imageUrl2) {
             return back()->with('success', 'Images generated successfully.')->with('image_url1', $imageUrl1)->with('image_url2', $imageUrl2);
@@ -164,12 +168,13 @@ class ImageController extends Controller
         }
     }
 
+
     public function faceSwap(Request $request)
     {
         $replicateApiToken = env('REPLICATE_API_TOKEN');
 
         $swapImageUrl = $request->swap_image_url;
-        $targetImageUrl = $request->target_image_url; 
+        $targetImageUrl = $request->target_image_url;
 
         // Make a POST request to the Replicate API
         $response = Http::withHeaders([
@@ -183,10 +188,36 @@ class ImageController extends Controller
             ],
         ]);
 
-        // Extract the swapped image URL from the response
-        $swappedImageUrl = $response->json('output.swapped_image');
+        Log::info("Replicate API response: " . $response->body());
 
-        return response()->json(['swapped_image_url' => $swappedImageUrl]);
+        // Extract the prediction ID from the response
+        $predictionId = $response->json('id');
+
+        $maxAttempts = 100;
+        $attempts = 0;
+
+        while ($attempts < $maxAttempts) {
+            // Get the prediction status
+            $statusResponse = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $replicateApiToken,
+                'Content-Type' => 'application/json',
+            ])->get('https://api.replicate.com/v1/predictions/' . $predictionId);
+
+            $status = $statusResponse->json('status');
+
+            if ($status === 'succeeded') {
+                // Extract the swapped image URL from the prediction data
+                $swappedImageUrl = $statusResponse->json('output');
+                return response()->json(['swapped_image_url' => $swappedImageUrl]);
+            } elseif ($status === 'failed') {
+                // Handle prediction failure
+                return response()->json(['error' => 'Prediction failed'], 500);
+            }
+
+            usleep(500000); 
+            $attempts++;
+        }
+
+        return response()->json(['error' => 'Prediction did not complete within the expected time'], 500);
     }
-
 }

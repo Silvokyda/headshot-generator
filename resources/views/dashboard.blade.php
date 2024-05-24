@@ -13,9 +13,12 @@
                     <form id="imageUploadForm" enctype="multipart/form-data">
                         @csrf
                         <div class="mb-4">
-                            <label for="image" class="block text-sm font-medium text-gray-700">Upload Image</label>
                             <input type="file" name="image" id="image" class="hidden" required>
                             <div id="imageContainer" class="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center mb-6 relative">
+                                <!-- Image displayed if image_name is present -->
+                                @if (Session::has('image_name'))
+                                <img src="{{ Session::get('image_name') }}" alt="Uploaded Image" class="w-32 h-32 rounded-full object-cover" style="width: 150px; height: 150px;">
+                                @else
                                 <!-- Label to trigger file upload when clicked -->
                                 <label for="image" class="cursor-pointer">
                                     <!-- SVG icon -->
@@ -29,6 +32,13 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v4m0 0v4m0-4h4m0 0H8m4 4v4m0 0v4m0-4h4m0 0H8"></path>
                                     </svg>
                                 </div>
+                                @endif
+                                <!-- Option to change selfie -->
+                                @if (Session::has('image_name'))
+                                <div class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 opacity-0 hover:opacity-100 transition duration-300">
+                                    <label for="image" class="cursor-pointer text-white font-medium">Change Selfie</label>
+                                </div>
+                                @endif
                             </div>
                         </div>
                     </form>
@@ -37,7 +47,10 @@
                         @csrf
                         <div class="mb-4">
                             <label for="gender" class="block text-sm font-medium text-gray-700">Gender</label>
-                            <input type="text" name="gender" id="gender" class="form-input rounded-md shadow-sm mt-1 block w-full" required>
+                            <select id="ethnicity" name="gender" id="gender" class="form-select rounded-md shadow-sm mt-1 block w-full" required>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
                         </div>
 
                         <div class="mb-4">
@@ -77,28 +90,24 @@
                             </button>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6">
+                        <div class="flex justify-between sm:w-full lg:w-3/5 mx-auto">
+                            <div class="mr-4">
                                 @if (session('success'))
-                                <div class="alert alert-success">
-                                    {{ session('success') }}
-                                </div>
                                 <div>
-                                    <img src="{{ session('image_url1') }}" alt="Generated Headshot 1" class="rounded-full img-fluid" onclick="handleImageClick('{{ session('image_url1') }}')">
+                                    <img src="{{ session('image_url1') }}" alt="Generated Headshot 1" class="rounded-full img-fluid w-36 h-36 sm:w-24 sm:h-24" onclick="handleImageClick('{{ session('image_url1') }}')">
                                 </div>
                                 @endif
                             </div>
-                            <div class="col-md-6">
+                            <div class="ml-4">
                                 @if (session('success'))
-                                <div class="alert alert-success">
-                                    {{ session('success') }}
-                                </div>
                                 <div>
-                                    <img src="{{ session('image_url2') }}" alt="Generated Headshot 2" class="rounded-full img-fluid" onclick="handleImageClick('{{ session('image_url2') }}')">>
+                                    <img src="{{ session('image_url2') }}" alt="Generated Headshot 2" class="rounded-full img-fluid w-36 h-36 sm:w-24 sm:h-24" onclick="handleImageClick('{{ session('image_url2') }}')">
                                 </div>
                                 @endif
                             </div>
                         </div>
+
+
 
                         @if (session('error'))
                         <div class="alert alert-danger">
@@ -108,8 +117,6 @@
                     </form>
 
                     <div id="swappedImageContainer"></div>
-
-
 
                     <script>
                         document.getElementById('image').addEventListener('change', function() {

@@ -23,3 +23,8 @@ Route::post('/face-swap', [ImageController::class, 'faceSwap'])->name('face_swap
     
 
 require __DIR__.'/auth.php';
+
+
+use App\Http\Controllers\ReplicateWebhookController;
+
+Route::post('/replicate/webhook', [ReplicateWebhookController::class, 'replicateWebhook'])->name('replicate.webhook');
