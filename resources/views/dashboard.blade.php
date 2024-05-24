@@ -79,7 +79,7 @@
                         });
                     </script>
 
-                    <form action="#" method="POST">
+                    <form action="{{ route('generate_headshot') }}" method="POST">
                         @csrf
                         <div class="mb-4">
                             <label for="gender" class="block text-sm font-medium text-gray-700">Gender</label>
@@ -94,17 +94,17 @@
                         <div class="mb-4">
                             <label for="ethnicity" class="block text-sm font-medium text-gray-700">Ethnicity</label>
                             <select id="ethnicity" name="ethnicity" class="form-select rounded-md shadow-sm mt-1 block w-full" required>
-                                <option value="1">African/Black</option>
-                                <option value="2">Asian</option>
-                                <option value="3">American</option>
+                                <option value="African/Black">African/Black</option>
+                                <option value="Asian">Asian</option>
+                                <option value="American">American</option>
                             </select>
                         </div>
 
                         <div class="mb-4">
                             <label for="hair_color" class="block text-sm font-medium text-gray-700">Hair Color</label>
                             <select id="hair_color" name="hair_color" class="form-select rounded-md shadow-sm mt-1 block w-full" required>
-                                <option value="1">Black</option>
-                                <option value="2">Blonde</option>
+                                <option value="Black">Black</option>
+                                <option value="Blonde">Blonde</option>
                             </select>
                         </div>
 
@@ -118,16 +118,40 @@
                         </div>
 
                         <div class="mt-4">
-                            <button type="submit" class="primary-btn">
+                            <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-600 active:bg-blue-700 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150">
                                 Submit
                             </button>
                         </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
 
+                        <div class="row">
+                            <div class="col-md-6">
+                                @if (session('success'))
+                                    <div class="alert alert-success">
+                                        {{ session('success') }}
+                                    </div>
+                                    <div>
+                                        <img src="{{ session('image_url1') }}" alt="Generated Headshot 1" class="rounded-full img-fluid">
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="col-md-6">
+                                @if (session('success'))
+                                    <div class="alert alert-success">
+                                        {{ session('success') }}
+                                    </div>
+                                    <div>
+                                        <img src="{{ session('image_url2') }}" alt="Generated Headshot 2" class="rounded-full img-fluid">
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        @if (session('error'))
+                        <div class="alert alert-danger">
+                            {{ session('error') }}
+                        </div>
+                        @endif
+                    </form>
                 </div>
             </div>
         </div>

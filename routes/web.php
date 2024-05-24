@@ -16,6 +16,8 @@ Route::view('profile', 'profile')
     
 
 Route::post('/upload-image', [ImageController::class, 'upload'])->name('upload_image');
+
+Route::post('/generate-headshot', [ImageController::class, 'generateHeadshot'])->name('generate_headshot');
     
 
 require __DIR__.'/auth.php';
