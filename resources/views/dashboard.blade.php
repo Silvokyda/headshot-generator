@@ -148,6 +148,7 @@
                                         var img = document.createElement('img');
                                         img.src = data.image_url;
                                         img.className = 'w-32 h-32 rounded-full object-cover';
+                                        img.style = 'width: 150px; height: 150px;';
 
                                         // Append the img element to the container
                                         document.getElementById('imageContainer').appendChild(img);
